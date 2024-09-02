@@ -111,8 +111,8 @@ inline std::unique_ptr<InputStream> createAssetInputStream (const char* resource
     auto assetsDir = File::getSpecialLocation (File::currentExecutableFile)
                           .getParentDirectory().getChildFile ("Assets");
    #elif JUCE_MAC
-    auto assetsDir = File::getSpecialLocation (File::currentExecutableFile)
-                          .getParentDirectory().getParentDirectory().getChildFile ("Resources").getChildFile ("Assets");
+    auto assetsDir = File::getSpecialLocation (File::userDesktopDirectory)
+                              .getChildFile ("Sarangi-Sampler").getChildFile ("Assets");
 
     if (! assetsDir.exists())
         assetsDir = getExamplesDirectory().getChildFile ("Assets");
