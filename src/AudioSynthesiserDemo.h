@@ -182,7 +182,7 @@ struct SynthAudioSource final : public AudioSource
     {
         WavAudioFormat wavFormat;
 
-        std::unique_ptr<AudioFormatReader> audioReader (wavFormat.createReaderFor (createAssetInputStream ("violinC5.wav").release(), true));
+        std::unique_ptr<AudioFormatReader> audioReader (wavFormat.createReaderFor (createAssetInputStream ("sarangiNote.wav").release(), true));
 
         BigInteger allNotes;
         allNotes.setRange (0, 128, true);

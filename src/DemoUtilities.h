@@ -117,7 +117,8 @@ inline std::unique_ptr<InputStream> createAssetInputStream (const char* resource
     if (! assetsDir.exists())
         assetsDir = getExamplesDirectory().getChildFile ("Assets");
    #else
-    auto assetsDir = getExamplesDirectory().getChildFile ("Assets");
+    auto assetsDir = File::getSpecialLocation(File::userDesktopDirectory)
+        .getChildFile("Sarangi-Sampler").getChildFile("Assets");
    #endif
 
     auto resourceFile = assetsDir.getChildFile (resourcePath);
