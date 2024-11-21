@@ -49,6 +49,9 @@ juce_generate_juce_header(RNBOAudioPlugin)
 target_sources(RNBOAudioPlugin PRIVATE
   src/PluginEditor.cpp
   src/PluginProcessor.cpp
+  src/ADSRControls.cpp
+  src/LogoComponent.cpp
+  src/WaveformDisplay.cpp
   )
 
 target_include_directories(RNBOAudioPlugin

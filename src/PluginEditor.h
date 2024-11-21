@@ -1,36 +1,30 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin editor.
-
-  ==============================================================================
-*/
-
 #pragma once
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
-#include "AudioSynthesiserDemo.h"
+#include "WaveformDisplay.h"
+#include "ADSRControls.h"
+#include "LogoComponent.h"
 
-//==============================================================================
-/**
-*/
-class SarangiAudioProcessorEditor  : public juce::AudioProcessorEditor
+class SimpleSamplerAudioProcessorEditor  : public AudioProcessorEditor,
+                                           public Timer
 {
 public:
-    SarangiAudioProcessorEditor (SarangiAudioProcessor&);
-    ~SarangiAudioProcessorEditor() override;
+    SimpleSamplerAudioProcessorEditor (SimpleSamplerAudioProcessor&);
+    ~SimpleSamplerAudioProcessorEditor();
 
     //==============================================================================
-    void paint (juce::Graphics&) override;
+    void paint (Graphics&) override;
     void resized() override;
+    
+    void timerCallback() override;
 
 private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
-    SarangiAudioProcessor& audioProcessor;
+    SimpleSamplerAudioProcessor& processor;
+    
+    WaveformDisplay mWaveformDisplay;
+    ADSRControls mADSRControls;
+    LogoComponent mLogoComponent;
 
-    AudioSynthesiserDemo testSynth;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SarangiAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleSamplerAudioProcessorEditor)
 };

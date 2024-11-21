@@ -1,40 +1,63 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin processor.
-
-  ==============================================================================
-*/
-
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+
+// Assign binary data for each note
+const char* gMajorABinaryData = BinaryData::A_wav;
+const size_t gMajorABinaryDataSize = BinaryData::A_wavSize;
+
+const char* gMajorBBinaryData = BinaryData::B_wav;
+const size_t gMajorBBinaryDataSize = BinaryData::B_wavSize;
+
+const char* gMajorCBinaryData = BinaryData::C_wav;
+const size_t gMajorCBinaryDataSize = BinaryData::C_wavSize;
+
+const char* gMajorDBinaryData = BinaryData::D_wav;
+const size_t gMajorDBinaryDataSize = BinaryData::D_wavSize;
+
+const char* gMajorEBinaryData = BinaryData::E_wav;
+const size_t gMajorEBinaryDataSize = BinaryData::E_wavSize;
+
+const char* gMajorFSharpBinaryData = BinaryData::F_wav;
+const size_t gMajorFSharpBinaryDataSize = BinaryData::F_wavSize;
+
+const char* gMajorGBinaryData = BinaryData::G_wav;
+const size_t gMajorGBinaryDataSize = BinaryData::G_wavSize;
+
+
+
 //==============================================================================
-SarangiAudioProcessor::SarangiAudioProcessor()
+SimpleSamplerAudioProcessor::SimpleSamplerAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
      : AudioProcessor (BusesProperties()
                      #if ! JucePlugin_IsMidiEffect
                       #if ! JucePlugin_IsSynth
-                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
+                       .withInput  ("Input",  AudioChannelSet::stereo(), true)
                       #endif
-                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
+                       .withOutput ("Output", AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ), mAPVTS(*this, nullptr, "PARAMETERS", createParameters())
 #endif
 {
+    mFormatManager.registerBasicFormats();
+    mAPVTS.state.addListener (this);
+    
+    for (int i = 0; i < mNumVoices; i++){
+        mSampler.addVoice(new SamplerVoice());
+    }
 }
 
-SarangiAudioProcessor::~SarangiAudioProcessor()
+SimpleSamplerAudioProcessor::~SimpleSamplerAudioProcessor()
 {
 }
 
 //==============================================================================
-const juce::String SarangiAudioProcessor::getName() const
+const String SimpleSamplerAudioProcessor::getName() const
 {
     return JucePlugin_Name;
 }
 
-bool SarangiAudioProcessor::acceptsMidi() const
+bool SimpleSamplerAudioProcessor::acceptsMidi() const
 {
    #if JucePlugin_WantsMidiInput
     return true;
@@ -43,7 +66,7 @@ bool SarangiAudioProcessor::acceptsMidi() const
    #endif
 }
 
-bool SarangiAudioProcessor::producesMidi() const
+bool SimpleSamplerAudioProcessor::producesMidi() const
 {
    #if JucePlugin_ProducesMidiOutput
     return true;
@@ -52,7 +75,7 @@ bool SarangiAudioProcessor::producesMidi() const
    #endif
 }
 
-bool SarangiAudioProcessor::isMidiEffect() const
+bool SimpleSamplerAudioProcessor::isMidiEffect() const
 {
    #if JucePlugin_IsMidiEffect
     return true;
@@ -61,61 +84,60 @@ bool SarangiAudioProcessor::isMidiEffect() const
    #endif
 }
 
-double SarangiAudioProcessor::getTailLengthSeconds() const
+double SimpleSamplerAudioProcessor::getTailLengthSeconds() const
 {
     return 0.0;
 }
 
-int SarangiAudioProcessor::getNumPrograms()
+int SimpleSamplerAudioProcessor::getNumPrograms()
 {
-    return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
-                // so this should be at least 1, even if you're not really implementing programs.
+    return 1;
 }
 
-int SarangiAudioProcessor::getCurrentProgram()
+int SimpleSamplerAudioProcessor::getCurrentProgram()
 {
     return 0;
 }
 
-void SarangiAudioProcessor::setCurrentProgram (int index)
+void SimpleSamplerAudioProcessor::setCurrentProgram (int index)
 {
 }
 
-const juce::String SarangiAudioProcessor::getProgramName (int index)
+const String SimpleSamplerAudioProcessor::getProgramName (int index)
 {
     return {};
 }
 
-void SarangiAudioProcessor::changeProgramName (int index, const juce::String& newName)
+void SimpleSamplerAudioProcessor::changeProgramName (int index, const String& newName)
 {
 }
 
 //==============================================================================
-void SarangiAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void SimpleSamplerAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+    mSampler.setCurrentPlaybackSampleRate(sampleRate);
+    
+    // Load samples for all notes
+    loadNoteSamples();
 }
 
-void SarangiAudioProcessor::releaseResources()
+void SimpleSamplerAudioProcessor::releaseResources()
 {
     // When playback stops, you can use this as an opportunity to free up any
     // spare memory, etc.
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
-bool SarangiAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool SimpleSamplerAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
   #if JucePlugin_IsMidiEffect
-    juce::ignoreUnused (layouts);
+    ignoreUnused (layouts);
     return true;
   #else
     // This is the place where you check if the layout is supported.
     // In this template code we only support mono or stereo.
-    // Some plugin hosts, such as certain GarageBand versions, will only
-    // load plugins that support stereo bus layouts.
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+    if (layouts.getMainOutputChannelSet() != AudioChannelSet::mono()
+     && layouts.getMainOutputChannelSet() != AudioChannelSet::stereo())
         return false;
 
     // This checks if the input layout matches the output layout
@@ -129,63 +151,103 @@ bool SarangiAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) 
 }
 #endif
 
-void SarangiAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void SimpleSamplerAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midiMessages)
 {
-    juce::ScopedNoDenormals noDenormals;
+    ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
-
-        // ..do something to the data...
+    
+    if (mShouldUpdate) {
+      updateADSR();
     }
+    
+    MidiMessage m;
+    MidiBuffer::Iterator iterator { midiMessages };
+    int sample;
+    
+    while (iterator.getNextEvent(m, sample))
+    {
+        if (m.isNoteOn()){
+            mIsNotePlayed = true;
+        }
+        else if (m.isNoteOff())
+        {
+            mIsNotePlayed = false;
+        }
+    }
+    
+    mSampleCount = mIsNotePlayed ? mSampleCount += buffer.getNumSamples() : 0;
+
+    mSampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 }
 
 //==============================================================================
-bool SarangiAudioProcessor::hasEditor() const
+bool SimpleSamplerAudioProcessor::hasEditor() const
 {
-    return true; // (change this to false if you choose to not supply an editor)
+    return true;
 }
 
-juce::AudioProcessorEditor* SarangiAudioProcessor::createEditor()
+AudioProcessorEditor* SimpleSamplerAudioProcessor::createEditor()
 {
-    return new SarangiAudioProcessorEditor (*this);
+    return new SimpleSamplerAudioProcessorEditor (*this);
 }
 
 //==============================================================================
-void SarangiAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+void SimpleSamplerAudioProcessor::getStateInformation (MemoryBlock& destData)
 {
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
 }
 
-void SarangiAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void SimpleSamplerAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
 }
 
+
+void SimpleSamplerAudioProcessor::updateADSR()
+{
+    mADSRParams.attack = mAPVTS.getRawParameterValue("ATTACK")->load();
+    mADSRParams.decay = mAPVTS.getRawParameterValue("DECAY")->load();
+    mADSRParams.sustain = mAPVTS.getRawParameterValue("SUSTAIN")->load();
+    mADSRParams.release = mAPVTS.getRawParameterValue("RELEASE")->load();
+    
+    for (int i = 0; i < mSampler.getNumSounds(); i++)
+    {
+        if (auto sound = dynamic_cast<SamplerSound*>(mSampler.getSound(i).get()))
+        {
+            sound->setEnvelopeParameters (mADSRParams);
+        }
+    }
+    DBG ("A: " << attack << " D: " << decay << " S: " << sustain << " R: " << release);
+}
+
+AudioProcessorValueTreeState::ParameterLayout SimpleSamplerAudioProcessor::createParameters()
+{
+    std::vector<std::unique_ptr<RangedAudioParameter>> parameters;
+    
+    parameters.push_back (std::make_unique<AudioParameterFloat> ("ATTACK", "Attack", 0.001f, 5.0f, 0.001f));
+    parameters.push_back (std::make_unique<AudioParameterFloat> ("DECAY", "Decay", 0.001f, 3.0f, 0.001f));
+    parameters.push_back (std::make_unique<AudioParameterFloat> ("SUSTAIN", "Sustain", 0.001f, 1.0f, 1.0f));
+    parameters.push_back (std::make_unique<AudioParameterFloat> ("RELEASE", "Release", 0.001f, 5.0f, 0.001f));
+    
+    return { parameters.begin(), parameters.end() };
+}
+
+void SimpleSamplerAudioProcessor::valueTreePropertyChanged(ValueTree &treeWhosePropertyHasChanged, const Identifier &property)
+{
+    mShouldUpdate = true;
+}
+
+
 //==============================================================================
 // This creates new instances of the plugin..
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new SarangiAudioProcessor();
+    return new SimpleSamplerAudioProcessor();
 }

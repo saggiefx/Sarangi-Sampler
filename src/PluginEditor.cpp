@@ -1,41 +1,38 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin editor.
-
-  ==============================================================================
-*/
-
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
 //==============================================================================
-SarangiAudioProcessorEditor::SarangiAudioProcessorEditor (SarangiAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p)
+SimpleSamplerAudioProcessorEditor::SimpleSamplerAudioProcessorEditor (SimpleSamplerAudioProcessor& p)
+    : AudioProcessorEditor (&p), processor (p), mWaveformDisplay(p), mADSRControls(p)
 {
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
-    setSize (400, 300);
-
-    addAndMakeVisible(testSynth);
+    addAndMakeVisible(mWaveformDisplay);
+    addAndMakeVisible(mADSRControls);
+    addAndMakeVisible(mLogoComponent);
+    
+    startTimerHz(30);
+    
+    setSize (500, 400);
 }
 
-SarangiAudioProcessorEditor::~SarangiAudioProcessorEditor()
+SimpleSamplerAudioProcessorEditor::~SimpleSamplerAudioProcessorEditor()
 {
+    stopTimer();
 }
 
 //==============================================================================
-void SarangiAudioProcessorEditor::paint (juce::Graphics& g)
+void SimpleSamplerAudioProcessorEditor::paint (Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll (juce::Colours::grey);
-
+    g.fillAll (Colours::grey);
 }
 
-void SarangiAudioProcessorEditor::resized()
+void SimpleSamplerAudioProcessorEditor::resized()
 {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
+    mWaveformDisplay.setBoundsRelative(0.0f, 0.0f, 1.0f, 0.65);
+    mLogoComponent.setBoundsRelative(0.0, 0.65, 0.4, 0.35);
+    mADSRControls.setBoundsRelative(0.5, 0.65, 0.5, 0.35);
+}
 
-    testSynth.setBounds(getLocalBounds());
+void SimpleSamplerAudioProcessorEditor::timerCallback()
+{
+    repaint();
 }
